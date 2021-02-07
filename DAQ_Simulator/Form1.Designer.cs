@@ -32,9 +32,9 @@ namespace DAQ_Simulator
             this.components = new System.ComponentModel.Container();
             this.btnSampling = new System.Windows.Forms.Button();
             this.btnLogOnFile = new System.Windows.Forms.Button();
-            this.textBox1 = new System.Windows.Forms.TextBox();
-            this.textBox2 = new System.Windows.Forms.TextBox();
-            this.textBox3 = new System.Windows.Forms.TextBox();
+            this.txtSampling = new System.Windows.Forms.TextBox();
+            this.txtLogging = new System.Windows.Forms.TextBox();
+            this.txtSensorVal = new System.Windows.Forms.TextBox();
             this.grpBoxSampling = new System.Windows.Forms.GroupBox();
             this.lblNxtSampTime = new System.Windows.Forms.Label();
             this.grpBocLogging = new System.Windows.Forms.GroupBox();
@@ -59,6 +59,7 @@ namespace DAQ_Simulator
             this.btnSampling.TabIndex = 0;
             this.btnSampling.Text = "Sampling";
             this.btnSampling.UseVisualStyleBackColor = true;
+            this.btnSampling.Click += new System.EventHandler(this.btnSampling_Click);
             // 
             // btnLogOnFile
             // 
@@ -69,33 +70,33 @@ namespace DAQ_Simulator
             this.btnLogOnFile.Text = "Logging on File";
             this.btnLogOnFile.UseVisualStyleBackColor = true;
             // 
-            // textBox1
+            // txtSampling
             // 
-            this.textBox1.Location = new System.Drawing.Point(157, 30);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(183, 20);
-            this.textBox1.TabIndex = 2;
+            this.txtSampling.Location = new System.Drawing.Point(157, 30);
+            this.txtSampling.Name = "txtSampling";
+            this.txtSampling.Size = new System.Drawing.Size(183, 20);
+            this.txtSampling.TabIndex = 2;
             // 
-            // textBox2
+            // txtLogging
             // 
-            this.textBox2.Location = new System.Drawing.Point(157, 35);
-            this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(183, 20);
-            this.textBox2.TabIndex = 3;
+            this.txtLogging.Location = new System.Drawing.Point(157, 35);
+            this.txtLogging.Name = "txtLogging";
+            this.txtLogging.Size = new System.Drawing.Size(183, 20);
+            this.txtLogging.TabIndex = 3;
             // 
-            // textBox3
+            // txtSensorVal
             // 
-            this.textBox3.Location = new System.Drawing.Point(6, 19);
-            this.textBox3.Multiline = true;
-            this.textBox3.Name = "textBox3";
-            this.textBox3.Size = new System.Drawing.Size(319, 296);
-            this.textBox3.TabIndex = 4;
+            this.txtSensorVal.Location = new System.Drawing.Point(6, 19);
+            this.txtSensorVal.Multiline = true;
+            this.txtSensorVal.Name = "txtSensorVal";
+            this.txtSensorVal.Size = new System.Drawing.Size(319, 296);
+            this.txtSensorVal.TabIndex = 4;
             // 
             // grpBoxSampling
             // 
             this.grpBoxSampling.Controls.Add(this.lblNxtSampTime);
             this.grpBoxSampling.Controls.Add(this.btnSampling);
-            this.grpBoxSampling.Controls.Add(this.textBox1);
+            this.grpBoxSampling.Controls.Add(this.txtSampling);
             this.grpBoxSampling.Location = new System.Drawing.Point(36, 84);
             this.grpBoxSampling.Name = "grpBoxSampling";
             this.grpBoxSampling.Size = new System.Drawing.Size(363, 150);
@@ -116,7 +117,7 @@ namespace DAQ_Simulator
             // 
             this.grpBocLogging.Controls.Add(this.lblNxtLogTime);
             this.grpBocLogging.Controls.Add(this.btnLogOnFile);
-            this.grpBocLogging.Controls.Add(this.textBox2);
+            this.grpBocLogging.Controls.Add(this.txtLogging);
             this.grpBocLogging.Location = new System.Drawing.Point(36, 240);
             this.grpBocLogging.Name = "grpBocLogging";
             this.grpBocLogging.Size = new System.Drawing.Size(363, 165);
@@ -135,7 +136,7 @@ namespace DAQ_Simulator
             // 
             // grpBoxSensorVal
             // 
-            this.grpBoxSensorVal.Controls.Add(this.textBox3);
+            this.grpBoxSensorVal.Controls.Add(this.txtSensorVal);
             this.grpBoxSensorVal.Location = new System.Drawing.Point(424, 84);
             this.grpBoxSensorVal.Name = "grpBoxSensorVal";
             this.grpBoxSensorVal.Size = new System.Drawing.Size(331, 321);
@@ -208,9 +209,9 @@ namespace DAQ_Simulator
 
         private System.Windows.Forms.Button btnSampling;
         private System.Windows.Forms.Button btnLogOnFile;
-        private System.Windows.Forms.TextBox textBox1;
-        private System.Windows.Forms.TextBox textBox2;
-        private System.Windows.Forms.TextBox textBox3;
+        private System.Windows.Forms.TextBox txtSampling;
+        private System.Windows.Forms.TextBox txtLogging;
+        private System.Windows.Forms.TextBox txtSensorVal;
         private System.Windows.Forms.GroupBox grpBoxSampling;
         private System.Windows.Forms.Label lblNxtSampTime;
         private System.Windows.Forms.GroupBox grpBocLogging;
