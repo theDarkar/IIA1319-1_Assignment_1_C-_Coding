@@ -15,6 +15,7 @@ namespace DAQ_Simulator
         public int amountAnalogDevices = new int();
         public int amountDigitalDevices = new int();
         public double samplingTime = new double();
+        public double loggingTime = new double();
         public double daqMinVolt = new double();
         public double daqMaxVolt = new double();
         public int daqResolution = new int();
@@ -35,6 +36,7 @@ namespace DAQ_Simulator
             amountAnalogDevices = 5;
             amountDigitalDevices = 2;
             samplingTime = 2.8;
+            loggingTime =
             daqMinVolt = 0.0;
             daqMaxVolt = 10.0;
             daqResolution = 14;
@@ -44,20 +46,30 @@ namespace DAQ_Simulator
             nextAllowedSamplingTime = DateTime.Now;
 
             analogSensors = createSensorArray(amountAnalogDevices, true, daqMinVolt, daqMaxVolt);
-            digitalSensors = createSensorArray(amountDigitalDevices, false);
-
+            digitalSensors = createSensorArray(amountDigitalDevices, false,0,1);
 
         }
 
-        private Sensor[] createSensorArray(int amountOfSensors, bool isAnalog, double minV = 0, double maxV = 1)
+        private Sensor[] createSensorArray(int amountOfSensors, bool isAnalog, double minV, double maxV, int resolution)
         {
             int counter;
             // Create an array of sensor objects
             Sensor[] sObj = new Sensor[amountOfSensors];
-            for (counter = 0; counter < amountOfSensors; counter++)
+            if (isAnalog)
             {
-                sObj[counter] = new Sensor(counter, isAnalog, minV, maxV);
+                for (counter = 0; counter < amountOfSensors; counter++)
+                {
+                    sObj[counter] = new Sensor(counter, isAnalog, minV, maxV, resolution);
+                } 
             }
+            else
+            {
+                for (counter = 0; counter < amountOfSensors; counter++)
+                {
+                    sObj[counter] = new Sensor(counter, isAnalog);
+                }
+            }
+
             return sObj;
         }
 
@@ -87,28 +99,22 @@ namespace DAQ_Simulator
 
         private void btnSampling_Click(object sender, EventArgs e)
         {
-            if (enoughTimePassed())
-            {
-                printToSensorValueTextField();
-            }
-            else
-            {
-
-            }
-        }
-
-        private bool enoughTimePassed()
-        {
-            timeStamp = DateTime.Now;
-            int result = DateTime.Compare(nextAllowedSamplingTime, timeStamp);
-
-
-
-            if (result < 0)
+            if (enoughTimePassed(nextAllowedSamplingTime))
             {
                 nextAllowedSamplingTime = DateTime.Now;
                 nextAllowedSamplingTime = nextAllowedSamplingTime.AddSeconds(samplingTime);
                 txtSampling.Text = nextAllowedSamplingTime.ToString();
+                printToSensorValueTextField();
+            }
+        }
+
+        private bool enoughTimePassed(DateTime nextAllowedTime)
+        {
+            DateTime timeStamp = DateTime.Now;
+            int result = DateTime.Compare(nextAllowedTime, timeStamp);
+
+            if (result < 0)
+            {
                 return true;
             }
             else
@@ -125,7 +131,7 @@ namespace DAQ_Simulator
             for (counter = 0; counter < analogSensors.Length; counter++)
             {
                 sTxt = string.Concat(sTxt, "Analog Sensor " + counter + " :  ");
-                sTxt = string.Concat(sTxt, analogSensors[counter].GetValue() + System.Environment.NewLine);
+                sTxt = string.Concat(sTxt, monvingAverage(10, analogSensors[counter]) + System.Environment.NewLine);
                 txtSensorVal.Text = sTxt;
             }
 
@@ -139,7 +145,28 @@ namespace DAQ_Simulator
             txtSensorVal.Text = sTxt;
         }
 
-        
+        private void btnLogOnFile_Click(object sender, EventArgs e)
+        {
+            //if (enoughTimePassed(nextAllowedLoggingTime))
+            //{
+            //    nextAllowedLoggingTime = DateTime.Now;
+            //    nextAllowedLoggingTime = nextAllowedLoggingTime.AddSeconds(samplingTime);
+            //    txtLogging.Text = nextAllowedLoggingTime.ToString();
+            //    printToCSV();
+            //}
+        }
+
+        private double monvingAverage(int size, Sensor sensor)
+        {
+            int counter;
+            double sum = 0;
+            for (counter = 0; counter < size; counter++)
+            {
+                sum += sensor.GetValue();
+            }
+            double result = sum / size;
+            return result;
+        }
     }
 
     /////////////////////////////////////////////////////////
@@ -154,8 +181,27 @@ namespace DAQ_Simulator
         private bool isAnalogSen;
         private double minVal;
         private double maxVal;
+        private double res;
+        private double[] daqRes;
 
-        public Sensor(int id, bool isAnalog, double minV = 0, double maxV = 1)
+        public Sensor(int id, bool isAnalog)
+        {
+            isAnalogSen = isAnalog;
+            sId = id;
+            rSensVal = new Random(id);
+            dVal = 0.0F;
+            minVal = 0;
+            maxVal = 1;
+            res = 16;
+
+            int counter;
+            for (counter = 0; counter < res; counter++)
+            {
+                daqRes[counter] = counter/res;
+            }
+        }
+
+        public Sensor(int id, bool isAnalog, double minV, double maxV, int resolution)
         {
             isAnalogSen = isAnalog;
             sId = id;
@@ -163,19 +209,27 @@ namespace DAQ_Simulator
             dVal = 0.0F;
             minVal = minV;
             maxVal = maxV;
+            res = resolution;
+
+            int counter;
+            for (counter = 0; counter < res; counter++)
+            {
+                daqRes[counter] = counter / res;
+            }
         }
         public double GetValue()
         {
             if (isAnalogSen)
             {
-                dVal += 10*(rSensVal.NextDouble() - 0.5);
+                dVal += 10*(rSensVal.NextDouble() - 0.4);
                 dVal = clamp(dVal, minVal, maxVal);
+
+                dVal = findClosest(daqRes, dVal);
             }
             else
             {
                 dVal += 2*(rSensVal.NextDouble() - 0.5);
                 dVal = Math.Round(clamp(dVal, minVal, maxVal));
-
             }
             return dVal;
         }
@@ -207,151 +261,14 @@ namespace DAQ_Simulator
             }
             return y;
         }
+
+        public double findClosest(double[] arr,double target)
+        {
+            var nearest = arr.OrderBy(x => Math.Abs((long)x - target)).First();
+            return (double) nearest;
+        }
     }
     /////////////////////////////////////////////////////////
 
-    ////////////////////////////////////////////////////////////////////////////////////
-    /// <summary>
-    /// Class to represent the sensors. A sinus function was use d to represent a 
-    /// countinous function which changes over time.
-    /// </summary>
-    //public class Sensor
-    //{
-    //    public bool isAnalog = new bool();
-    //    public double minVal = new double();
-    //    public double maxVal = new double();
-
-    //    // Parameters for the signal 
-    //    private double a = new double();
-    //    private double b = new double();
-    //    private double c = new double();
-    //    private double d = new double();
-
-    //    private Random randomGenerator = new Random();
-    //    private double rnd1 = new double();
-    //    private double rnd2 = new double();
-    //    private double rnd3 = new double();
-    //    private double rnd4 = new double();
-
-    //    /// <summary>
-    //    ///  Constructor for AnalogSensor. Sets the sensor as digital
-    //    /// </summary>
-    //    public Sensor()
-    //    {
-    //        isAnalog = false;
-    //        minVal = -8;
-    //        maxVal = 10;
-    //        rnd1 = randomGenerator.NextDouble();
-    //        rnd2 = randomGenerator.NextDouble();
-    //        rnd3 = randomGenerator.NextDouble();
-    //        rnd4 = randomGenerator.NextDouble();
-    //        setParameters(minVal, maxVal);
-    //    }
-
-    //    /// <summary>
-    //    ///  Constructor for AnalogSensor. set
-    //    /// </summary>
-    //    /// <param name="isAnalogSensor"></param>
-    //    public Sensor(bool isAnalogSensor)
-    //    {
-    //        isAnalog = isAnalogSensor;
-    //        minVal = -8;
-    //        maxVal = 10;
-    //        rnd1 = randomGenerator.NextDouble();
-    //        rnd2 = randomGenerator.NextDouble();
-    //        rnd3 = randomGenerator.NextDouble();
-    //        rnd4 = randomGenerator.NextDouble();
-    //        setParameters(minVal, maxVal);
-    //    }
-
-    //    public bool setMinMaxVal(double minV, double maxV)
-    //    {
-    //        bool finished = false;
-    //        minVal = minV;
-    //        maxVal = maxV;
-    //        finished = setParameters(minV, maxV);
-
-    //        return finished;
-    //    }
-
-
-    //    double getMeasurment(double time)
-    //    {
-    //        double y = a*Math.Sin(b*time + c) + d;
-    //        double z = 0;
-
-    //        if (isAnalog)
-    //        {
-    //            z = clamp(y, minVal, maxVal);
-    //        }
-    //        else
-    //        {
-    //            y = (double)Math.Round(y);
-    //            z = clamp(y, 0, 1);
-    //        }
-
-    //        return z;
-    //    }
-
-    //    // Set parameters for the function
-    //    private bool setParameters(double minV, double maxV)
-    //    {
-    //        a = maxV*rnd1 - minV*rnd1;
-    //        b = a*rnd2;
-    //        c = (a/2)*rnd3;
-    //        d = maxV*rnd4 - minV*rnd4;
-    //        return true;
-    //    }
-
-    //    private double clamp(double x, double min, double max)
-    //    {
-    //        double y = 0;
-    //        if (max < x)
-    //        {
-    //            y = max;
-    //        }
-    //        else if (min > x)
-    //        {
-    //            y = min;
-    //        }
-    //        else
-    //        {
-    //            y = x;
-    //        }
-    //        return y;
-    //    }
-    //}
-//}
-////////////////////////////////////////////////////////////////////////////////////
-
-
-//public class DigitalSensor
-//{
-
-//    // Constructor for sensor
-//    public DigitalSensor()
-//    {
-
-//    }
-
-
-//    bool measured(double time)
-//    {
-
-//    }
-//}
-
-// Class to return machine time in seconds 
-// source: https://dirask.com/posts/C-NET-get-current-machine-time-in-seconds-ZDNLnj
-//public static class TimeUtils
-//    {
-//        public static double GetSeconds()
-//        {
-//            double timestamp = Stopwatch.GetTimestamp();
-//            double seconds = timestamp / Stopwatch.Frequency;
-
-//            return seconds;
-//        }
-//    }
-
+   
 }

@@ -69,6 +69,7 @@ namespace DAQ_Simulator
             this.btnLogOnFile.TabIndex = 1;
             this.btnLogOnFile.Text = "Logging on File";
             this.btnLogOnFile.UseVisualStyleBackColor = true;
+            this.btnLogOnFile.Click += new System.EventHandler(this.btnLogOnFile_Click);
             // 
             // txtSampling
             // 
