@@ -7,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Threading;
+
 
 namespace DAQ_Simulator
 {
@@ -45,8 +47,8 @@ namespace DAQ_Simulator
             timeStamp = DateTime.Now;
             nextAllowedSamplingTime = DateTime.Now;
 
-            analogSensors = createSensorArray(amountAnalogDevices, true, daqMinVolt, daqMaxVolt);
-            digitalSensors = createSensorArray(amountDigitalDevices, false,0,1);
+            analogSensors = createSensorArray(amountAnalogDevices, true, daqMinVolt, daqMaxVolt, daqResolution);
+            digitalSensors = createSensorArray(amountDigitalDevices, false, 0, 1, daqResolution);
 
         }
 
@@ -130,20 +132,23 @@ namespace DAQ_Simulator
 
             for (counter = 0; counter < analogSensors.Length; counter++)
             {
-                sTxt = string.Concat(sTxt, "Analog Sensor " + counter + " :  ");
+                sTxt = string.Concat(sTxt, "Analog Sensor " + analogSensors[counter].GetSensId() + " :  ");
                 sTxt = string.Concat(sTxt, monvingAverage(10, analogSensors[counter]) + System.Environment.NewLine);
                 txtSensorVal.Text = sTxt;
             }
 
             for (counter = 0; counter < digitalSensors.Length; counter++)
             { 
-                sTxt = string.Concat(sTxt, "Digital Sensor " + counter + " :  ");
+                sTxt = string.Concat(sTxt, "Digital Sensor " + digitalSensors[counter].GetSensId() + " :  ");
                 sTxt = string.Concat(sTxt, digitalSensors[counter].GetValue() + System.Environment.NewLine);
                 txtSensorVal.Text = sTxt;
             }
 
             txtSensorVal.Text = sTxt;
         }
+
+
+        
 
         private void btnLogOnFile_Click(object sender, EventArgs e)
         {
@@ -167,6 +172,7 @@ namespace DAQ_Simulator
             double result = sum / size;
             return result;
         }
+
     }
 
     /////////////////////////////////////////////////////////
@@ -181,7 +187,7 @@ namespace DAQ_Simulator
         private bool isAnalogSen;
         private double minVal;
         private double maxVal;
-        private double res;
+        private int res;
         private double[] daqRes;
 
         public Sensor(int id, bool isAnalog)
@@ -194,11 +200,7 @@ namespace DAQ_Simulator
             maxVal = 1;
             res = 16;
 
-            int counter;
-            for (counter = 0; counter < res; counter++)
-            {
-                daqRes[counter] = counter/res;
-            }
+            daqRes = getDaqRes(res, maxVal, minVal);
         }
 
         public Sensor(int id, bool isAnalog, double minV, double maxV, int resolution)
@@ -211,11 +213,7 @@ namespace DAQ_Simulator
             maxVal = maxV;
             res = resolution;
 
-            int counter;
-            for (counter = 0; counter < res; counter++)
-            {
-                daqRes[counter] = counter / res;
-            }
+            daqRes = getDaqRes(res, maxVal, minVal);
         }
         public double GetValue()
         {
@@ -262,10 +260,33 @@ namespace DAQ_Simulator
             return y;
         }
 
-        public double findClosest(double[] arr,double target)
+        private double[] getDaqRes(int res, double maxV, double minV)
         {
-            var nearest = arr.OrderBy(x => Math.Abs((long)x - target)).First();
-            return (double) nearest;
+            int counter;
+            double[] daqRes = new double[res];
+            for (counter = 0; counter < res; counter++)
+            {
+                daqRes[counter] = (maxV + minV) * (((double)counter) / ((double)res)) + minV;
+            }
+            return daqRes;
+        }
+
+        public double findClosest(double[] arr, double target)
+        {
+            int counter;
+            int closestIndex = -1;
+            double lowestSub = 1000000;
+            for (counter = 0; counter < arr.Length; counter++)
+            {
+                double sub = Math.Abs(arr[counter] - target);
+                if (lowestSub > sub)
+                {
+                    closestIndex = counter;
+                    lowestSub = sub;
+                }
+            }
+            double nearest = arr[closestIndex];
+            return (double)nearest;
         }
     }
     /////////////////////////////////////////////////////////
