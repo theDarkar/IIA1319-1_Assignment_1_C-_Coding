@@ -24,6 +24,7 @@ namespace DAQ_Simulator
         public bool loggDateTime = new bool();
         public bool loggTime = new bool();
         public string filePath;
+        public string csvSep;
         public StringBuilder csv = new StringBuilder();
        
         public DateTime timeStamp;
@@ -50,6 +51,7 @@ namespace DAQ_Simulator
             loggDateTime = false;
             loggTime = false;
             filePath = "log.csv";// Places file in the debug folder
+            csvSep = ";";
 
             aSensLog = new double[amountAnalogDevices];
             dSensLog = new double[amountDigitalDevices];
@@ -95,15 +97,18 @@ namespace DAQ_Simulator
             txtLogging.Text = nextAllowedLoggingTime.ToString();
             printToSensorValueTextField();
 
+            csv.AppendLine("sep=" + csvSep);
+            File.WriteAllText(filePath, csv.ToString());
+
             int counter;
             string sTxt = "Date and time";
             for (counter = 0; counter < aSensLog.Length; counter++)
             {
-                sTxt = sTxt + "," + "Analog Sensor " + analogSensors[counter].GetSensId();
+                sTxt = sTxt + csvSep + "Analog Sensor " + analogSensors[counter].GetSensId();
             }
             for (counter = 0; counter < dSensLog.Length; counter++)
             {
-                sTxt = sTxt + "," + "Digital Sensor " + digitalSensors[counter].GetSensId();
+                sTxt = sTxt + csvSep + "Digital Sensor " + digitalSensors[counter].GetSensId();
             }
             csv.AppendLine(sTxt);
             File.WriteAllText(filePath, csv.ToString());
@@ -197,12 +202,12 @@ namespace DAQ_Simulator
 
             for (counter = 0; counter < aSensLog.Length; counter++)
             {
-                sTxt = sTxt + aSensLog[counter] + ",";
+                sTxt = sTxt + csvSep + aSensLog[counter];
             }
             
             for (counter = 0; counter < dSensLog.Length; counter++)
             {
-                sTxt = sTxt + dSensLog[counter] + ",";
+                sTxt = sTxt + csvSep + dSensLog[counter];
             }
 
             csv.AppendLine(sTxt);
