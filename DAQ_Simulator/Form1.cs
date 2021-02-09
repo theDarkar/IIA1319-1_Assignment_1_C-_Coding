@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Threading;
-
+using System.IO;
 
 namespace DAQ_Simulator
 {
@@ -22,13 +22,18 @@ namespace DAQ_Simulator
         public double daqMaxVolt = new double();
         public int daqResolution = new int();
         public bool loggDateTime = new bool();
-
+        public bool loggTime = new bool();
+        public string filePath;
+        public StringBuilder csv = new StringBuilder();
        
         public DateTime timeStamp;
         public DateTime nextAllowedSamplingTime;
+        public DateTime nextAllowedLoggingTime;
 
-        private Sensor[] analogSensors;
-        private Sensor[] digitalSensors;
+        public Sensor[] analogSensors;
+        public Sensor[] digitalSensors;
+        public double[] aSensLog;
+        public double[] dSensLog;
 
         
 
@@ -38,14 +43,20 @@ namespace DAQ_Simulator
             amountAnalogDevices = 5;
             amountDigitalDevices = 2;
             samplingTime = 2.8;
-            loggingTime =
+            loggingTime = 28;
             daqMinVolt = 0.0;
             daqMaxVolt = 10.0;
             daqResolution = 14;
             loggDateTime = false;
+            loggTime = false;
+            filePath = "log.csv";// Places file in the debug folder
+
+            aSensLog = new double[amountAnalogDevices];
+            dSensLog = new double[amountDigitalDevices];
 
             timeStamp = DateTime.Now;
             nextAllowedSamplingTime = DateTime.Now;
+            nextAllowedLoggingTime = DateTime.Now;
 
             analogSensors = createSensorArray(amountAnalogDevices, true, daqMinVolt, daqMaxVolt, daqResolution);
             digitalSensors = createSensorArray(amountDigitalDevices, false, 0, 1, daqResolution);
@@ -77,27 +88,26 @@ namespace DAQ_Simulator
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            
+            nextAllowedSamplingTime = DateTime.Now;
+            nextAllowedSamplingTime = nextAllowedSamplingTime.AddSeconds(samplingTime);
+            txtSampling.Text = nextAllowedSamplingTime.ToString();
+            nextAllowedLoggingTime = DateTime.Now;
+            txtLogging.Text = nextAllowedLoggingTime.ToString();
+            printToSensorValueTextField();
+
+            int counter;
+            string sTxt = "Date and time";
+            for (counter = 0; counter < aSensLog.Length; counter++)
+            {
+                sTxt = sTxt + "," + "Analog Sensor " + analogSensors[counter].GetSensId();
+            }
+            for (counter = 0; counter < dSensLog.Length; counter++)
+            {
+                sTxt = sTxt + "," + "Digital Sensor " + digitalSensors[counter].GetSensId();
+            }
+            csv.AppendLine(sTxt);
+            File.WriteAllText(filePath, csv.ToString());
         }
-
-
-
-        //void saveToCSV()
-        //{
-        //    int counter, maxSid = 16;
-        //    string sTxt;
-        //    // Create an array of sensor objects
-        //    Sensor[] sObj = new Sensor[maxSid];
-        //    for (counter = 0; counter < maxSid; counter++)
-        //    {
-        //        sObj[counter] = new Sensor(counter);
-        //    }
-        //    // Get the object values as a string
-        //    for (counter = 0; counter < maxSid; counter++)
-        //    {
-        //        sTxt = sObj[counter].GetValue().ToString("F3");
-        //    }
-        //}
 
         private void btnSampling_Click(object sender, EventArgs e)
         {
@@ -130,17 +140,20 @@ namespace DAQ_Simulator
             int counter;
             string sTxt = "";
 
+
             for (counter = 0; counter < analogSensors.Length; counter++)
             {
+                aSensLog[counter] = monvingAverage(10, analogSensors[counter]);
                 sTxt = string.Concat(sTxt, "Analog Sensor " + analogSensors[counter].GetSensId() + " :  ");
-                sTxt = string.Concat(sTxt, monvingAverage(10, analogSensors[counter]) + System.Environment.NewLine);
+                sTxt = string.Concat(sTxt, aSensLog[counter] + System.Environment.NewLine);
                 txtSensorVal.Text = sTxt;
             }
 
             for (counter = 0; counter < digitalSensors.Length; counter++)
-            { 
+            {
+                dSensLog[counter] = digitalSensors[counter].GetValue();
                 sTxt = string.Concat(sTxt, "Digital Sensor " + digitalSensors[counter].GetSensId() + " :  ");
-                sTxt = string.Concat(sTxt, digitalSensors[counter].GetValue() + System.Environment.NewLine);
+                sTxt = string.Concat(sTxt, dSensLog[counter] + System.Environment.NewLine);
                 txtSensorVal.Text = sTxt;
             }
 
@@ -148,17 +161,15 @@ namespace DAQ_Simulator
         }
 
 
-        
-
         private void btnLogOnFile_Click(object sender, EventArgs e)
         {
-            //if (enoughTimePassed(nextAllowedLoggingTime))
-            //{
-            //    nextAllowedLoggingTime = DateTime.Now;
-            //    nextAllowedLoggingTime = nextAllowedLoggingTime.AddSeconds(samplingTime);
-            //    txtLogging.Text = nextAllowedLoggingTime.ToString();
-            //    printToCSV();
-            //}
+            if (enoughTimePassed(nextAllowedLoggingTime))
+            {
+                nextAllowedLoggingTime = DateTime.Now;
+                nextAllowedLoggingTime = nextAllowedLoggingTime.AddSeconds(loggingTime);
+                txtLogging.Text = nextAllowedLoggingTime.ToString();
+                printToCSV();
+            }
         }
 
         private double monvingAverage(int size, Sensor sensor)
@@ -171,6 +182,32 @@ namespace DAQ_Simulator
             }
             double result = sum / size;
             return result;
+        }
+
+
+        public void printToCSV()
+        {
+            int counter;
+            string sTxt = "--.--.---- --:--:--";
+            if (loggTime)
+            {
+                sTxt = DateTime.Now.ToString();
+            }
+
+
+            for (counter = 0; counter < aSensLog.Length; counter++)
+            {
+                sTxt = sTxt + aSensLog[counter] + ",";
+            }
+            
+            for (counter = 0; counter < dSensLog.Length; counter++)
+            {
+                sTxt = sTxt + dSensLog[counter] + ",";
+            }
+
+            csv.AppendLine(sTxt);
+
+            File.WriteAllText(filePath, csv.ToString());
         }
 
     }
